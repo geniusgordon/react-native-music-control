@@ -1,5 +1,7 @@
 package com.tanguyantoine.react;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.ComponentCallbacks2;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -11,12 +13,14 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.SystemClock;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.media.app.NotificationCompat.MediaStyle;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.RatingCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
-import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -34,6 +38,8 @@ import java.util.Map;
 public class MusicControlModule extends ReactContextBaseJavaModule implements ComponentCallbacks2 {
 
     static MusicControlModule INSTANCE;
+
+    private static String CHANNEL_ID = "react-native-music-control-channel";
 
     private boolean init = false;
     protected MediaSessionCompat session;
@@ -107,8 +113,19 @@ public class MusicControlModule extends ReactContextBaseJavaModule implements Co
         md = new MediaMetadataCompat.Builder();
         pb = new PlaybackStateCompat.Builder();
         pb.setActions(controls);
-        nb = new NotificationCompat.Builder(context);
-        nb.setStyle(new NotificationCompat.MediaStyle().setMediaSession(session.getSessionToken()));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          CharSequence name = context.getString(R.string.channel_name);
+          String description = context.getString(R.string.channel_description);
+          int importance = NotificationManager.IMPORTANCE_LOW;
+          NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
+          mChannel.setDescription(description);
+          NotificationManager notificationManager = (NotificationManager) context.getSystemService(context.NOTIFICATION_SERVICE);
+          notificationManager.createNotificationChannel(mChannel);
+        }
+
+        nb = new NotificationCompat.Builder(context, CHANNEL_ID);
+        nb.setStyle(new MediaStyle().setMediaSession(session.getSessionToken()));
 
         state = pb.build();
 
